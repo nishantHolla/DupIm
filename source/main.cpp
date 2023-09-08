@@ -11,7 +11,7 @@
 #define DEFAULT_THRESHHOLD 15
 
 const std::vector<std::string> IMAGE_EXTS = {".png", ".jpg", ".jpeg"};
-int THRESHHOLD;
+int THRESHOLD;
 bool isImage(const std::filesystem::path& _path);
 std::string shiftArgs(int *argc, char **argv[]);
 
@@ -22,7 +22,7 @@ int main (int argc, char *argv[]) {
 
 	const std::string PROGRAM = shiftArgs(&argc, &argv);
 	const std::string TARGET = shiftArgs(&argc, &argv);
-	const std::string THRESHHOLD_INPUT = shiftArgs(&argc, &argv);
+	const std::string THRESHOLD_INPUT = shiftArgs(&argc, &argv);
 	std::fstream OUTPUT_FILE ("./duplicatesOutput.txt", std::ios::out);
 	std::fstream LOG_FILE ("./duplicatesLog.txt", std::ios::out);
 
@@ -32,12 +32,12 @@ int main (int argc, char *argv[]) {
 	if (std::filesystem::is_directory(TARGET) == false)
 		return 3;
 
-	if (THRESHHOLD_INPUT.empty() == false) {
+	if (THRESHOLD_INPUT.empty() == false) {
 		try {
-			THRESHHOLD = std::stoi(THRESHHOLD_INPUT);
+			THRESHOLD = std::stoi(THRESHOLD_INPUT);
 		}
 		catch (std::invalid_argument e) {
-			THRESHHOLD = DEFAULT_THRESHHOLD;
+			THRESHOLD = DEFAULT_THRESHHOLD;
 		}
 	}
 
@@ -58,7 +58,7 @@ int main (int argc, char *argv[]) {
 
 		for (auto& pair: imageHashes) {
 			int hammingDistance;
-			if ((hammingDistance = ph_hamming_distance(pair.first, IMAGE_HASH)) > THRESHHOLD)
+			if ((hammingDistance = ph_hamming_distance(pair.first, IMAGE_HASH)) > THRESHOLD)
 				continue;
 			
 			OUTPUT_FILE << "Found match of " << hammingDistance << "\n" << IMAGE_PATH << "\n" << pair.second << "\n\n";
