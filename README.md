@@ -1,5 +1,5 @@
 
-# findDuplicateImages
+# DupIm
 
 This is a simple program to find duplicate images or images that are similar to each other under a
 given directory.<br>
@@ -11,7 +11,7 @@ This program uses [pHash](https://phash.org/) library to identify duplicates and
 - Run the program in a command line with the following command line arguments
 
 ```bash
-./findDuplicateImages <path_to_directory> <threshold_count>
+./DupIm <path_to_directory> <threshold_count>
 ```
 
 - \<path_to_directory> is the relative or absolute path to the directory under which the program

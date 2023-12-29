@@ -9,7 +9,7 @@ INCLUDE_DIR=$(SOURCE_DIR)/include
 LIBRARY_DIR=$(SOURCE_DIR)/library
 
 SOURCE=$(SOURCE_DIR)/main.cpp
-OUTPUT=$(OUTPUT_DIR)/findDuplicateFiles
+OUTPUT=$(OUTPUT_DIR)/DupIm
 LIBRARIES=-lpHash
 
 debug:
