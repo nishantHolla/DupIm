@@ -23,10 +23,10 @@ is closer to zero, the search will be more strict and the images will have to be
 to be detected. Default value of 15 is used if not provided.
 - On completion, you will find that two new files will be present in the current directory. These are
 
-    - 'duplicatesOutput.txt' this is the file that contains the result of the search. It lists all
+    - 'Dupim.output.txt' this is the file that contains the result of the search. It lists all
     the files that were found to be duplicates or similar to each other with their hamming distance
     (note that smaller the hamming distance, more similar are the images)
 
-    - 'duplicatesLog.txt' this is just a log file that contains all the pHashes of images that were
+    - 'Dupim.log.txt' this is just a log file that contains all the pHashes of images that were
     recorded. If an image path does not exists in the file means that it was found to be a duplicate
     of an existing file. Check the output file to see the duplicate.
