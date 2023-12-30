@@ -30,3 +30,24 @@ to be detected. Default value of 15 is used if not provided.
     - 'Dupim.log.txt' this is just a log file that contains all the pHashes of images that were
     recorded. If an image path does not exists in the file means that it was found to be a duplicate
     of an existing file. Check the output file to see the duplicate.
+
+## Development
+
+### Dependencies
+
+This application depends on the following c++ libraries:
+- opencv2
+- pHash
+
+Once the dependencies are installed, clone the repository with
+```
+git clone https://github.com/nishantHolla/DupIm.git
+```
+
+and run
+
+```
+cmake -S . -B build
+```
+
+to build the application
