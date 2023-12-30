@@ -1,8 +1,8 @@
 
-#include <algorithm>
+#include "./include/sisIO.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <opencv2/opencv.hpp>
 #include <pHash.h>
 #include <string>
 #include <unordered_map>
@@ -10,83 +10,162 @@
 
 #define DEFAULT_THRESHOLD 15
 
-const std::vector<std::string> IMAGE_EXTS = {".png", ".jpg", ".jpeg"};
-int THRESHOLD;
-bool isImage(const std::filesystem::path &_path);
+const std::vector<std::string> IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"};
+int threshold = DEFAULT_THRESHOLD;
+const std::string OUTPUT_FILE = "./Dupim.output.txt";
+const std::string LOG_FILE = "./Dupim.log.txt";
+const std::string TEMP_FILE = "./Dupim.temp.jpg";
+
+SisIO io = SisIO("");
+SisIO OutputIO = SisIO(OUTPUT_FILE);
+SisIO LogIO = SisIO(LOG_FILE);
+
+bool isImageFile(const std::filesystem::path &filePath);
 std::string shiftArgs(int *argc, char **argv[]);
+bool convert(const std::filesystem::path &filePath);
+void cleanup();
+void compute(const std::filesystem::path &filePath,
+             std::unordered_map<ulong64, std::filesystem::path> &hashMap);
+void logResult(const int hammingDistace, const std::filesystem::path &a,
+               const std::filesystem::path &b);
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 2)
+    if (argc < 2) {
+
+        io.output(SisIO::messageType::error, "Invalid arguments.");
+        io.output(SisIO::messageType::info,
+                  "Usage: <program_name> <target_directory> <threshold_value>");
         return 1;
+    }
 
     const std::string PROGRAM = shiftArgs(&argc, &argv);
     const std::string TARGET = shiftArgs(&argc, &argv);
     const std::string THRESHOLD_INPUT = shiftArgs(&argc, &argv);
-    std::fstream OUTPUT_FILE("./duplicatesOutput.txt", std::ios::out);
-    std::fstream LOG_FILE("./duplicatesLog.txt", std::ios::out);
 
-    if (!OUTPUT_FILE)
-        return 2;
-
-    if (std::filesystem::is_directory(TARGET) == false)
-        return 3;
+    if (std::filesystem::is_directory(TARGET) == false) {
+        io.output(SisIO::messageType::error,
+                  "Could not find target directory.");
+        return 4;
+    }
 
     if (THRESHOLD_INPUT.empty() == false) {
         try {
-            THRESHOLD = std::stoi(THRESHOLD_INPUT);
+            threshold = std::stoi(THRESHOLD_INPUT);
         } catch (std::invalid_argument e) {
-            THRESHOLD = DEFAULT_THRESHOLD;
+            io.output(SisIO::messageType::error,
+                      "Could not convert given threshold number");
+            return 5;
         }
     }
 
+    if (std::filesystem::exists(LOG_FILE)) {
+        io.output(SisIO::messageType::error,
+                  "Found an existing log file at " + LOG_FILE +
+                      ". Please remove it to run the program.");
+        return 6;
+    }
+
+    if (std::filesystem::exists(OUTPUT_FILE)) {
+        io.output(SisIO::messageType::error,
+                  "Found an existing output file at " + OUTPUT_FILE +
+                      ". Please remove it to run the program.");
+        return 7;
+    }
+
     std::unordered_map<ulong64, std::filesystem::path> imageHashes;
-    for (auto &entry : std::filesystem::recursive_directory_iterator(TARGET)) {
-        if (isImage(entry.path()) == false)
+    compute(TARGET, imageHashes);
+
+    cleanup();
+    return 0;
+}
+
+bool isImageFile(const std::filesystem::path &filePath) {
+    if (std::filesystem::is_regular_file(filePath) == false)
+        return false;
+
+    const std::string FILE_EXT = filePath.extension().string();
+    return (std::find(IMAGE_EXTS.begin(), IMAGE_EXTS.end(), FILE_EXT) !=
+            IMAGE_EXTS.end());
+}
+
+bool convert(const std::filesystem::path &filePath) {
+    const std::string EXT = filePath.extension().string();
+    if (EXT == "jpg" || EXT == "jpeg") {
+        return true;
+    }
+
+    cv::Mat image = cv::imread(filePath.string(), cv::IMREAD_UNCHANGED);
+    if (image.empty()) {
+        return false;
+    }
+
+    std::vector<int> compression_params;
+    compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(95);
+
+    if (!cv::imwrite(TEMP_FILE, image, compression_params)) {
+        return false;
+    }
+
+    return true;
+}
+
+void compute(const std::filesystem::path &filePath,
+             std::unordered_map<ulong64, std::filesystem::path> &hashMap) {
+
+    for (auto &entry :
+         std::filesystem::recursive_directory_iterator(filePath)) {
+        if (isImageFile(entry.path()) == false)
+            continue;
+
+        const bool validFile = convert(entry.path());
+        if (!validFile)
             continue;
 
         const std::filesystem::path IMAGE_PATH =
             std::filesystem::canonical(entry.path());
-        ulong64 IMAGE_HASH;
-        ph_dct_imagehash(IMAGE_PATH.c_str(), IMAGE_HASH);
-        std::cout << "Working on " << IMAGE_PATH.string() << "\n";
 
-        if (imageHashes.find(IMAGE_HASH) != imageHashes.end()) {
-            OUTPUT_FILE << "Found duplicates:\n"
-                        << IMAGE_PATH << "\n"
-                        << imageHashes[IMAGE_HASH] << "\n\n";
-            continue;
+        ulong64 imageHash;
+        const std::string EXT = entry.path().extension().string();
+
+        if (EXT == "jpg" || EXT == "jpeg")
+            ph_dct_imagehash(IMAGE_PATH.c_str(), imageHash);
+        else
+            ph_dct_imagehash(TEMP_FILE.c_str(), imageHash);
+
+        LogIO.log(SisIO::messageType::info,
+                  entry.path().string() + " => " + std::to_string(imageHash),
+                  "Dupim");
+
+        for (auto &pair : hashMap) {
+            const int hammingDistance =
+                ph_hamming_distance(pair.first, imageHash);
+
+            if (hammingDistance < threshold)
+                logResult(hammingDistance, pair.second, entry.path());
         }
 
-        for (auto &pair : imageHashes) {
-            int hammingDistance;
-            if ((hammingDistance =
-                     ph_hamming_distance(pair.first, IMAGE_HASH)) > THRESHOLD)
-                continue;
-
-            OUTPUT_FILE << "Found match of " << hammingDistance << "\n"
-                        << IMAGE_PATH << "\n"
-                        << pair.second << "\n\n";
-        }
-
-        imageHashes[IMAGE_HASH] = IMAGE_PATH;
+        hashMap[imageHash] = entry.path();
     }
-
-    for (auto &pair : imageHashes) {
-        LOG_FILE << pair.first << ": " << pair.second << "\n";
-    }
-
-    OUTPUT_FILE.close();
-    return 0;
 }
 
-bool isImage(const std::filesystem::path &_path) {
-    if (std::filesystem::is_regular_file(_path) == false)
-        return false;
+void logResult(const int hammingDistace, const std::filesystem::path &a,
+               const std::filesystem::path &b) {
+    const std::string title =
+        hammingDistace != 0
+            ? "Found similarity of " + std::to_string(hammingDistace)
+            : "Found duplicates";
 
-    const std::string FILE_EXT = _path.extension().string();
-    return (std::find(IMAGE_EXTS.begin(), IMAGE_EXTS.end(), FILE_EXT) !=
-            IMAGE_EXTS.end());
+    const std::string message =
+        title + "\n\t" + a.string() + "\n\t" + b.string();
+    OutputIO.log(SisIO::messageType::warn, message, "Dupim");
+    io.output(SisIO::messageType::warn, message);
+}
+
+void cleanup() {
+    if (std::filesystem::exists(TEMP_FILE))
+        std::filesystem::remove(TEMP_FILE);
 }
 
 std::string shiftArgs(int *argc, char **argv[]) {
