@@ -8,6 +8,8 @@ This program uses [pHash](https://phash.org/) library to identify duplicates and
 
 ## Usage
 
+- Download the application from the release page.
+
 - Run the program in a command line with the following command line arguments
 
 ```bash
@@ -18,7 +20,7 @@ This program uses [pHash](https://phash.org/) library to identify duplicates and
 recursively finds for duplicate or similar images.
 - \<threshold_count> is the sensitivity of the search. It must be a positive integer. If the number
 is closer to zero, the search will be more strict and the images will have to be very similar in order
-to be detected.
+to be detected. Default value of 15 is used if not provided.
 - On completion, you will find that two new files will be present in the current directory. These are
 
     - 'duplicatesOutput.txt' this is the file that contains the result of the search. It lists all
