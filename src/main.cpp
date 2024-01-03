@@ -1,5 +1,5 @@
 
-#include "./include/sisIO.hpp"
+#include "sisIO.hpp"
 #include <filesystem>
 #include <fstream>
 #include <opencv2/opencv.hpp>
