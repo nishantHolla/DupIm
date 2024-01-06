@@ -2,68 +2,49 @@
 #ifndef SIS_IO_H_
 #define SIS_IO_H_
 
+#include <fstream>
+#include <iostream>
 #include <string>
 #include <unordered_map>
-#include <iostream>
-#include <fstream>
-
 
 class SisIO {
+ public:
+  SisIO(std::string _logFilePath);
 
-public:
+  enum class messageType { prompt, none, okay, info, warn, error };
 
-	SisIO(std::string _logFilePath);
+  enum class messageColor { white, green, cyan, yellow, red, blue };
 
-	enum class messageType {
-		prompt,
-		none,
-		okay,
-		info,
-		warn,
-		error
-	};
+  std::string logFilePath;
 
-	enum class messageColor {
-		white,
-		green,
-		cyan,
-		yellow,
-		red,
-		blue
-	};
+  messageType logLevel;
+  messageType outputLevel;
 
-	std::string logFilePath;
+  bool colorMessages;
+  bool tagMessages;
 
-	messageType logLevel;
-	messageType outputLevel;
+  int output(messageType _messageType, const std::string& _message,
+             bool _endline = true);
+  std::string inputLine(const std::string& _message);
+  int log(messageType _messageType, const std::string& _message,
+          const std::string _sender);
 
-	bool colorMessages;
-	bool tagMessages;
+  template <typename T>
+  T input(const std::string& _message) {
+    output(messageType::prompt, _message, false);
+    T result;
+    std::cin >> result;
+    return result;
+  }
 
-	int output(messageType _messageType, const std::string& _message, bool _endline=true);
-	std::string inputLine(const std::string& _message);
-	int log(messageType _messageType, const std::string& _message, const std::string _sender);
+  ~SisIO();
 
-	template<typename T>
-		T input(const std::string& _message) {
-			output(messageType::prompt, _message, false);
-			T result;
-			std::cin >> result;
-			return result;
-		}
+ private:
+  std::unordered_map<messageType, messageColor> messageTypeToColor;
+  std::unordered_map<messageType, std::string> messageTypeToTag;
+  std::unordered_map<messageColor, std::string> colorToAnsiCode;
 
-
-	~SisIO();
-
-private:
-
-	std::unordered_map<messageType, messageColor> messageTypeToColor;
-	std::unordered_map<messageType, std::string> messageTypeToTag;
-	std::unordered_map<messageColor, std::string> colorToAnsiCode;
-
-	const std::string colorReset;
-
+  const std::string colorReset;
 };
 
-
-#endif // !SIS_IO_H_
+#endif  // !SIS_IO_H_
