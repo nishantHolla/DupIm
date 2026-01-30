@@ -2,8 +2,7 @@
 # DupIm
 
 This is a simple program to find duplicate images or images that are similar to each other under a
-given directory.<br>
-
+given directory.<br />
 This program uses [pHash](https://phash.org/) library to identify duplicates and similar images.
 
 ## Usage
